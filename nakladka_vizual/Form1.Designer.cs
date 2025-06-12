@@ -61,6 +61,7 @@
             this.panel_truckBed.Size = new System.Drawing.Size(779, 550);
             this.panel_truckBed.TabIndex = 0;
             this.panel_truckBed.Paint += new System.Windows.Forms.PaintEventHandler(this.panel1_Paint);
+            this.panel_truckBed.MouseMove += new System.Windows.Forms.MouseEventHandler(this.panel_truckBed_MouseMove);
             // 
             // button_addPallet
             // 
@@ -225,7 +226,7 @@
             this.label_X2.Size = new System.Drawing.Size(84, 20);
             this.label_X2.TabIndex = 11;
             this.label_X2.Text = "label_Xcor";
-            this.label_X2.Click += new System.EventHandler(this.label1_Click);
+            
             // 
             // label_Y2
             // 
@@ -235,7 +236,7 @@
             this.label_Y2.Size = new System.Drawing.Size(84, 20);
             this.label_Y2.TabIndex = 12;
             this.label_Y2.Text = "label_Xcor";
-            this.label_Y2.Click += new System.EventHandler(this.label1_Click_1);
+            
             // 
             // label_X3
             // 
