@@ -20,19 +20,6 @@ namespace nakladka_vizual
         int bedY;
         String bedSize = "200x50";
 
-        // nevim
-        int dragOffsetX;
-        int dragOffsetY;
-
-        bool draggingX;
-        bool draggingY;
-        //nevim
-
-        bool wasInXBuffer = false;
-        bool wasInYBuffer = false;
-
-        bool hasSnappedX = false;
-        bool hasSnappedY = false;
 
         bool hasSnappedOut = false;
         bool hasSnappedIn = true;
@@ -174,7 +161,7 @@ namespace nakladka_vizual
             int centerY = panel_truckBed.Height / 2;
             int xCorBed = centerX - bedX / 2;
             int yCorBed = centerY - bedY / 2;
-            int buffer = 100; // or whatever
+            int buffer = 50; // or whatever
 
             // 4) offsets from pallet edge
             int leftOffset = palletLocal.X;
@@ -208,38 +195,28 @@ namespace nakladka_vizual
             bool cursorOutX = e.X <= xCorBed - buffer || e.X >= xCorBed + bedX + buffer;
             bool cursorOutY = e.Y <= yCorBed - buffer || e.Y >= yCorBed + bedY + buffer;
 
-            bool insideFrameX = distLeft >= 0 && distRight <= 0;    // ← added
-            bool insideFrameY = distTop >= 0 && distBottom <= 0;   // ← added
+                    
 
-            // ← added: determine if cursor is now fully outside buffer
-            bool outsideX = outLeftBuf || outRightBuf;              // ← added
-            bool outsideY = outTopBuf || outBottomBuf;             // ← added
+            
 
-            /*
-
-            if(outsideX || outsideY && hasSnappedOut == false)
+            if(cursorOutX || cursorOutY && hasSnappedOut == false)
             {
                 hasSnappedOut = true;
                 hasSnappedIn = false;
-                deltaX = 0; deltaY = 0;
-                
-            }
-            if (hasSnappedOut)
-            {
+                deltaX = 0; deltaY = 0; // je to potreba??
                 selectedPallet.Location = e.Location;
+
             }
 
-            if (insideFrameX || insideFrameY && hasSnappedIn == false)
+            if (!(cursorOutX || cursorOutY) && hasSnappedIn == false)
             {
                 hasSnappedIn = true;
                 hasSnappedOut = false;
                 deltaX = 0; deltaY = 0;
-            }
-            if (hasSnappedIn)
-            {
                 selectedPallet.Location = e.Location;
             }
-            */
+            
+            
 
 
             label_X4.Text = "IN";
@@ -249,14 +226,6 @@ namespace nakladka_vizual
             selectedPallet.Location = newLoc;
 
             
-
-
-
-
-            // 10) Apply the allowed movement
-
-
-
 
 
             // 11) Optional debug labels

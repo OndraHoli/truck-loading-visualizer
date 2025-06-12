@@ -38,10 +38,10 @@
             this.label_bedSize = new System.Windows.Forms.Label();
             this.label_PalletSize = new System.Windows.Forms.Label();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
+            this.label_Y2 = new System.Windows.Forms.Label();
+            this.label_X2 = new System.Windows.Forms.Label();
             this.label_Y = new System.Windows.Forms.Label();
             this.label_X = new System.Windows.Forms.Label();
-            this.label_X2 = new System.Windows.Forms.Label();
-            this.label_Y2 = new System.Windows.Forms.Label();
             this.label_X3 = new System.Windows.Forms.Label();
             this.label_Y3 = new System.Windows.Forms.Label();
             this.label_X4 = new System.Windows.Forms.Label();
@@ -81,7 +81,9 @@
             this.comboBox_Bedsize.Items.AddRange(new object[] {
             "300x100",
             "400x200",
-            "600x200"});
+            "600x200",
+            "720x240",
+            "820x240"});
             this.comboBox_Bedsize.Location = new System.Drawing.Point(1011, 35);
             this.comboBox_Bedsize.Name = "comboBox_Bedsize";
             this.comboBox_Bedsize.Size = new System.Drawing.Size(213, 28);
@@ -200,6 +202,24 @@
             this.tableLayoutPanel1.Size = new System.Drawing.Size(1227, 699);
             this.tableLayoutPanel1.TabIndex = 9;
             // 
+            // label_Y2
+            // 
+            this.label_Y2.AutoSize = true;
+            this.label_Y2.Location = new System.Drawing.Point(1011, 588);
+            this.label_Y2.Name = "label_Y2";
+            this.label_Y2.Size = new System.Drawing.Size(84, 20);
+            this.label_Y2.TabIndex = 12;
+            this.label_Y2.Text = "label_Xcor";
+            // 
+            // label_X2
+            // 
+            this.label_X2.AutoSize = true;
+            this.label_X2.Location = new System.Drawing.Point(829, 588);
+            this.label_X2.Name = "label_X2";
+            this.label_X2.Size = new System.Drawing.Size(84, 20);
+            this.label_X2.TabIndex = 11;
+            this.label_X2.Text = "label_Xcor";
+            // 
             // label_Y
             // 
             this.label_Y.AutoSize = true;
@@ -217,26 +237,6 @@
             this.label_X.Size = new System.Drawing.Size(84, 20);
             this.label_X.TabIndex = 9;
             this.label_X.Text = "label_Xcor";
-            // 
-            // label_X2
-            // 
-            this.label_X2.AutoSize = true;
-            this.label_X2.Location = new System.Drawing.Point(829, 588);
-            this.label_X2.Name = "label_X2";
-            this.label_X2.Size = new System.Drawing.Size(84, 20);
-            this.label_X2.TabIndex = 11;
-            this.label_X2.Text = "label_Xcor";
-            
-            // 
-            // label_Y2
-            // 
-            this.label_Y2.AutoSize = true;
-            this.label_Y2.Location = new System.Drawing.Point(1011, 588);
-            this.label_Y2.Name = "label_Y2";
-            this.label_Y2.Size = new System.Drawing.Size(84, 20);
-            this.label_Y2.TabIndex = 12;
-            this.label_Y2.Text = "label_Xcor";
-            
             // 
             // label_X3
             // 
