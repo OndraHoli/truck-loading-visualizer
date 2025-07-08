@@ -3,15 +3,24 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
+
+using PdfSharp.Pdf;
+using PdfSharp.Drawing;
+
+
+
 namespace nakladka_vizual
 {
     public partial class Form1 : Form
     {
+        private ContextMenuStrip palletContextMenu;
         private bool isDragging = false;
         private Point dragOffset;
         private Panel selectedPallet = null;
@@ -23,17 +32,38 @@ namespace nakladka_vizual
 
         bool hasSnappedOut = false;
         bool hasSnappedIn = true;
+
         public Form1()
         {
             InitializeComponent();
-            
+            palletContextMenu = new ContextMenuStrip();
+            palletContextMenu.Items.Add("Rotate", null, RotatePallet);
+
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            
+            //extra
+            //panel_truckBed.Paint += panel_truckBed_Paint;
         }
 
+        //extra
+        /*
+        private void panel_truckBed_Paint(object sender, PaintEventArgs e)
+        {
+            string text = "MS OBALY, A.S.";
+            using (Font font = new Font("Arial", 30, FontStyle.Bold))
+            using (Brush brush = new SolidBrush(Color.DarkBlue)) // or any color
+            {
+                // Optional: center it
+                SizeF textSize = e.Graphics.MeasureString(text, font);
+                float x = (panel_truckBed.Width - textSize.Width) / 2;
+                float y = 10; // you can move it down as needed
+
+                e.Graphics.DrawString(text, font, brush, x, y);
+            }
+        }
+        */
         private void panel1_Paint(object sender, PaintEventArgs e)
         {
             string[] parts = bedSize.Split('x');
@@ -75,6 +105,8 @@ namespace nakladka_vizual
             Panel Pallet = new Panel();
             Pallet.BackColor = Color.FromArgb(102, 99, 99);
 
+            Pallet.ContextMenuStrip = palletContextMenu;
+
             //back image
             //Pallet.BackgroundImage = Image.FromFile("C:\\Users\\Ondra\\source\\repos\\nakladka_vizual\\paleta.png");
             //Pallet.BackgroundImageLayout = ImageLayout.Stretch;
@@ -86,7 +118,9 @@ namespace nakladka_vizual
             Pallet.MouseDown += Pallet_MouseDown;
             Pallet.MouseMove += Pallet_MouseMove;
             Pallet.MouseUp += Pallet_MouseUp;
+
             
+
             panel_truckBed.Controls.Add(Pallet);
         }
 
@@ -112,24 +146,34 @@ namespace nakladka_vizual
         
         private void Pallet_MouseDown(object sender, MouseEventArgs e)
         {
+            if(e.Button == MouseButtons.Right)
+            {
+                selectedPallet = sender as Panel;
+                return;
+            }
 
+            if(e.Button == MouseButtons.Left)
+            {
+                selectedPallet = sender as Panel;
+                if (selectedPallet == null) return;
 
-            selectedPallet = sender as Panel;
-            if (selectedPallet == null) return;
+                isDragging = true;
+                dragOffset = e.Location;
+                selectedPallet.BackColor = Color.LightGray;
+                selectedPallet.BringToFront();
 
-            isDragging = true;
-            dragOffset = e.Location;
-            selectedPallet.BackColor = Color.LightGray;
-            selectedPallet.BringToFront();
+                // Capture and hook both Move *and* Up on the panel
+                panel_truckBed.Capture = true;
+                panel_truckBed.MouseMove += Panel_truckBed_MouseMove;
+                panel_truckBed.MouseUp += Panel_truckBed_MouseUp;
+            }
+            
 
-            // Capture and hook both Move *and* Up on the panel
-            panel_truckBed.Capture = true;
-            panel_truckBed.MouseMove += Panel_truckBed_MouseMove;
-            panel_truckBed.MouseUp += Panel_truckBed_MouseUp;
+            
         }
         private void Panel_truckBed_MouseUp(object sender, MouseEventArgs e)
         {
-            // Exactly the same cleanup you had in Pallet_MouseUp:
+            
             isDragging = false;
 
             if (selectedPallet != null)
@@ -148,7 +192,7 @@ namespace nakladka_vizual
             if (!isDragging || selectedPallet == null) return;
 
             // 1) deltas in pallet coords
-            //    we still need dragOffset from pallet, so translate panel coords to pallet-local:
+           
             Point palletLocal = selectedPallet.PointToClient(panel_truckBed.PointToScreen(e.Location));
             int deltaX = palletLocal.X - dragOffset.X;
             int deltaY = palletLocal.Y - dragOffset.Y;
@@ -156,20 +200,20 @@ namespace nakladka_vizual
             // 2) mouseInBed is just e.Location
             Point mouseInBed = e.Location;
 
-            // 3) compute bed bounds
+            // 3) bed bounds
             int centerX = panel_truckBed.Width / 2;
             int centerY = panel_truckBed.Height / 2;
             int xCorBed = centerX - bedX / 2;
             int yCorBed = centerY - bedY / 2;
             int buffer = 50; // or whatever
 
-            // 4) offsets from pallet edge
+            // 4) offsets 
             int leftOffset = palletLocal.X;
             int rightOffset = selectedPallet.Width - palletLocal.X;
             int topOffset = palletLocal.Y;
             int bottomOffset = selectedPallet.Height - palletLocal.Y;
 
-            // 5) distances from each edge
+            // 5) distances 
             
             int distLeft = (mouseInBed.X - leftOffset) - xCorBed;
             int distRight = (mouseInBed.X + rightOffset) - (xCorBed + bedX);
@@ -228,7 +272,7 @@ namespace nakladka_vizual
             
 
 
-            // 11) Optional debug labels
+            // debug
             label_X3.Text = inLeftBuf ? "IN LEFT BUF" :
                             outLeftBuf ? "LEFT OUT" :
                             inRightBuf ? "IN RIGHT BUF" :
@@ -255,14 +299,16 @@ namespace nakladka_vizual
 
 
 
-        private void RotatePallet(Panel pallet)
+        private void RotatePallet(object Sender, EventArgs e)
         {
-            int oldWidth = pallet.Width;
-            pallet.Width = pallet.Height;
-            pallet.Height = oldWidth;
 
-            // Redraw after rotation
-            pallet.Invalidate();
+            if (selectedPallet != null)
+            {
+                int oldWidth = selectedPallet.Width;
+                selectedPallet.Width = selectedPallet.Height;
+                selectedPallet.Height = oldWidth;
+                selectedPallet.Invalidate(); 
+            }
         }
 
 
@@ -281,6 +327,49 @@ namespace nakladka_vizual
         {
             label_X2.Text = Convert.ToString(e.X);
             label_Y2.Text = Convert.ToString(e.Y);
+        }
+
+        //extra
+        private void button_export_Click(object sender, EventArgs e)
+        {
+            // dialog
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Filter = "PDF Files|*.pdf";
+                dlg.DefaultExt = "pdf";
+                dlg.FileName = "NalozenyKamion.pdf";
+
+                if (dlg.ShowDialog() != DialogResult.OK)
+                    return;   
+
+                
+                ExportTruckBedToPdf(dlg.FileName);
+
+                MessageBox.Show("Exported to " + dlg.FileName, "Done",
+                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+
+        }
+        //extra
+        private void ExportTruckBedToPdf(string filename)
+        {
+            // 1) Bitmap
+            var bmp = new Bitmap(panel_truckBed.Width, panel_truckBed.Height);
+            panel_truckBed.DrawToBitmap(bmp, new Rectangle(0, 0, bmp.Width, bmp.Height));
+
+            // 2) Create PDF 
+            var doc = new PdfSharp.Pdf.PdfDocument();
+            var page = doc.AddPage();
+            page.Orientation = PdfSharp.PageOrientation.Landscape;
+            using (var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page))
+            using (var ms = new MemoryStream())
+            {
+                bmp.Save(ms, ImageFormat.Png);
+                ms.Position = 0;
+                var img = PdfSharp.Drawing.XImage.FromStream(ms);
+                gfx.DrawImage(img, 0, 0, page.Width, page.Height);
+            }
+            doc.Save(filename);
         }
     }
 }
