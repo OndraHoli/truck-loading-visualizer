@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 
+
 using PdfSharp.Pdf;
 using PdfSharp.Drawing;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Button;
@@ -47,6 +48,34 @@ namespace nakladka_vizual
             palletContextMenu = new ContextMenuStrip();
             palletContextMenu.Items.Add("Rotate", null, RotatePallet);
             palletContextMenu.Items.Add("Delete", null, DeletePallet);
+            palletContextMenu.Items.Add("Rename", null, RenamePallet);
+            panel_truckBed.BackColor = ColorTranslator.FromHtml("#F0F0F0");
+            panel_truckBed.BorderStyle = BorderStyle.FixedSingle;
+
+            var bedSizeLabel = new Label
+            {
+                Text = $"{bedX}×{bedY}",        // or use bedSize if you prefer the raw string
+                AutoSize = true,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ForeColor = ColorTranslator.FromHtml("#2C3E50"),
+                BackColor = Color.Transparent,
+                Location = new Point(8, 8)          // small inset from top-left
+            };
+
+            // 2) Add it into the truck-bed panel
+            panel_truckBed.Controls.Add(bedSizeLabel);
+            bedSizeLabel.BringToFront();
+
+            // 
+            comboBox_Bedsize.SelectedIndexChanged += (s, e) =>
+            {
+                bedSize = comboBox_Bedsize.Text;
+                var parts = bedSize.Split('x');
+                bedX = int.Parse(parts[0]);
+                bedY = int.Parse(parts[1]);
+                bedSizeLabel.Text = $"{bedX}×{bedY}";
+                panel_truckBed.Invalidate();
+            };
 
         }
 
@@ -79,7 +108,7 @@ namespace nakladka_vizual
             bedX = Convert.ToInt16(parts[0]);
             bedY = Convert.ToInt16(parts[1]);
 
-            using (Pen pen = new Pen(Color.Yellow, 5))
+            using (Pen pen = new Pen(ColorTranslator.FromHtml("#2C3E50"), 5))
             {
                 pen.Alignment = System.Drawing.Drawing2D.PenAlignment.Inset;
 
@@ -112,8 +141,9 @@ namespace nakladka_vizual
             }
 
             Panel Pallet = new Panel();
-            Pallet.BackColor = Color.FromArgb(102, 99, 99);
+            Pallet.BackColor = ColorTranslator.FromHtml("#16A085");
             Pallet.Padding = new Padding(10, 10, 10, 0);
+
 
             Pallet.ContextMenuStrip = palletContextMenu;
 
@@ -129,7 +159,7 @@ namespace nakladka_vizual
             Pallet.Paint += drawCross;
 
             Pallet.Size = new Size(widthPallet, heigthPallet);
-            Pallet.Location = new Point(300, 300);
+            Pallet.Location = new Point(100, 100);
             Pallet.MouseDown += Pallet_MouseDown;
             Pallet.MouseMove += Pallet_MouseMove;
             Pallet.MouseUp += Pallet_MouseUp;
@@ -146,8 +176,8 @@ namespace nakladka_vizual
                 ForeColor = Color.White,
                 BackColor = Color.FromArgb(102, 99, 99) // match panel so text pops
             };
-            lbl.DoubleClick += Label_DoubleClick;
-
+            
+            lbl.MouseDown += Pallet_MouseDown;
             Pallet.Controls.Add(lbl);
             lbl.BringToFront();
 
@@ -160,7 +190,7 @@ namespace nakladka_vizual
             Panel panel = sender as Panel;
             if (panel == null) return;
 
-            using (Pen pen = new Pen(Color.Cyan, 5))
+            using (Pen pen = new Pen(ColorTranslator.FromHtml("#ECF0F1"), 5))
             {
                 pen.Alignment = System.Drawing.Drawing2D.PenAlignment.Inset;
                 e.Graphics.DrawLine(pen, 0, 0, panel.Width, panel.Height);          
@@ -174,33 +204,46 @@ namespace nakladka_vizual
                 e.Graphics.DrawRectangle(pen, 0, 0, panel.Width, panel.Height);
             }
         }
-        
+
         private void Pallet_MouseDown(object sender, MouseEventArgs e)
         {
-            if(e.Button == MouseButtons.Right)
+            // Figure out which Panel was clicked (panel or its label)
+            Panel panel = null;
+            if (sender is Panel p)
+                panel = p;
+            else if (sender is Label lbl)
+                panel = lbl.Parent as Panel;
+
+            if (panel == null)
+                return;
+
+            // Right-click: just select for context menu
+            if (e.Button == MouseButtons.Right)
             {
-                selectedPallet = sender as Panel;
+                selectedPallet = panel;
                 return;
             }
 
-            if(e.Button == MouseButtons.Left)
+            // Left-click: start dragging
+            if (e.Button == MouseButtons.Left)
             {
-                selectedPallet = sender as Panel;
-                if (selectedPallet == null) return;
-
+                selectedPallet = panel;
                 isDragging = true;
-                dragOffset = e.Location;
+
+                // Compute dragOffset in panel-coordinates
+                // Convert the mouse point (which is relative to the sender)
+                // into screen coords, then back into the panel’s client coords:
+                var screenPt = ((Control)sender).PointToScreen(e.Location);
+                dragOffset = panel.PointToClient(screenPt);
+
                 selectedPallet.BackColor = Color.LightGray;
                 selectedPallet.BringToFront();
 
-                // Capture and hook both Move *and* Up on the panel
+                // Hook the bed’s move/up to continue drag
                 panel_truckBed.Capture = true;
                 panel_truckBed.MouseMove += Panel_truckBed_MouseMove;
                 panel_truckBed.MouseUp += Panel_truckBed_MouseUp;
             }
-            
-
-            
         }
         private void Panel_truckBed_MouseUp(object sender, MouseEventArgs e)
         {
@@ -209,7 +252,7 @@ namespace nakladka_vizual
 
             if (selectedPallet != null)
             {
-                selectedPallet.BackColor = Color.FromArgb(102, 99, 99);
+                selectedPallet.BackColor = ColorTranslator.FromHtml("#16A085");
                 selectedPallet = null;
             }
 
@@ -232,7 +275,7 @@ namespace nakladka_vizual
             int deltaY = palletLocal.Y - dragOffset.Y;
 
             // 2) bed rect + buffer
-            int buffer = 50;
+            int buffer = 75;
             int bedLeft = (panel_truckBed.Width - bedX) / 2;
             int bedTop = (panel_truckBed.Height - bedY) / 2;
             int bedRight = bedLeft + bedX;
@@ -366,8 +409,7 @@ namespace nakladka_vizual
         //pro debugging
         private void panel_truckBed_MouseMove(object sender, MouseEventArgs e)
         {
-            label_X2.Text = Convert.ToString(e.X);
-            label_Y2.Text = Convert.ToString(e.Y);
+            
         }
 
         //extra
@@ -425,12 +467,24 @@ namespace nakladka_vizual
                 .Where(q => q != p)        // except the one we’re moving
                 .Any(q => q.Bounds.IntersectsWith(candidate));
         }
+        private void RenamePallet(object sender, EventArgs e)
+        {
+            if (selectedPallet == null) return;
+
+            // Find the header label in the panel
+            var lbl = selectedPallet.Controls
+                       .OfType<Label>()
+                       .FirstOrDefault();
+            if (lbl == null) return;
+
+            // Kick off the same inline‐edit logic as a double‐click
+            Label_DoubleClick(lbl, EventArgs.Empty);
+        }
         private void Label_DoubleClick(object sender, EventArgs e)
         {
             var lbl = (Label)sender;
             var panel = (Panel)lbl.Parent;
 
-            // Create the editor textbox
             var tb = new TextBox
             {
                 Text = lbl.Text,
@@ -440,7 +494,6 @@ namespace nakladka_vizual
                 Font = lbl.Font
             };
 
-            // Local helper to commit the edit and restore the label
             void Commit()
             {
                 panel.Controls.Clear();
@@ -450,25 +503,16 @@ namespace nakladka_vizual
                 panel.Controls.Add(lbl);
             }
 
-            // Commit when the textbox loses focus
             tb.Leave += (s2, e2) => Commit();
-
-            // Commit when Enter is pressed
-            tb.KeyDown += (s2, ke) =>
-            {
-                if (ke.KeyCode == Keys.Enter)
-                {
-                    ke.Handled = true;
-                    ke.SuppressKeyPress = true;
-                    Commit();
-                }
+            tb.KeyDown += (s2, ke) => {
+                if (ke.KeyCode == Keys.Enter) { ke.Handled = true; ke.SuppressKeyPress = true; Commit(); }
             };
 
-            // Swap in the TextBox
             panel.Controls.Clear();
             panel.Controls.Add(tb);
             tb.Focus();
         }
+
     }
 
 
