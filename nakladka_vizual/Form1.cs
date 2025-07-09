@@ -13,6 +13,8 @@ using System.Windows.Forms;
 
 using PdfSharp.Pdf;
 using PdfSharp.Drawing;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Button;
+using System.Reflection;
 
 
 
@@ -33,11 +35,18 @@ namespace nakladka_vizual
         bool hasSnappedOut = false;
         bool hasSnappedIn = true;
 
+        private bool _preventOverlap = false;
+
         public Form1()
         {
             InitializeComponent();
+            typeof(Panel)
+                .GetProperty("DoubleBuffered",
+                 BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(panel_truckBed, true, null);
             palletContextMenu = new ContextMenuStrip();
             palletContextMenu.Items.Add("Rotate", null, RotatePallet);
+            palletContextMenu.Items.Add("Delete", null, DeletePallet);
 
         }
 
@@ -104,8 +113,14 @@ namespace nakladka_vizual
 
             Panel Pallet = new Panel();
             Pallet.BackColor = Color.FromArgb(102, 99, 99);
+            Pallet.Padding = new Padding(10, 10, 10, 0);
 
             Pallet.ContextMenuStrip = palletContextMenu;
+
+            typeof(Panel)
+                .GetProperty("DoubleBuffered",
+                 BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(Pallet, true, null);
 
             //back image
             //Pallet.BackgroundImage = Image.FromFile("C:\\Users\\Ondra\\source\\repos\\nakladka_vizual\\paleta.png");
@@ -119,7 +134,23 @@ namespace nakladka_vizual
             Pallet.MouseMove += Pallet_MouseMove;
             Pallet.MouseUp += Pallet_MouseUp;
 
-            
+            // only a header strip at the top
+            var lbl = new Label
+            {
+                Text = $"{widthPallet}×{heigthPallet}",
+                Dock = DockStyle.Top,            // dock to top instead of filling
+                Height = 20,
+                TextAlign = ContentAlignment.MiddleCenter,
+                AutoSize = false,
+                Font = new Font("Arial", 9f, FontStyle.Bold),
+                ForeColor = Color.White,
+                BackColor = Color.FromArgb(102, 99, 99) // match panel so text pops
+            };
+            lbl.DoubleClick += Label_DoubleClick;
+
+            Pallet.Controls.Add(lbl);
+            lbl.BringToFront();
+
 
             panel_truckBed.Controls.Add(Pallet);
         }
@@ -189,100 +220,100 @@ namespace nakladka_vizual
         }
         private void Panel_truckBed_MouseMove(object sender, MouseEventArgs e)
         {
+            panel_truckBed.Refresh();
+
+
             if (!isDragging || selectedPallet == null) return;
 
-            // 1) deltas in pallet coords
-           
-            Point palletLocal = selectedPallet.PointToClient(panel_truckBed.PointToScreen(e.Location));
+            // 1) raw delta
+            Point palletLocal = selectedPallet.PointToClient(
+                panel_truckBed.PointToScreen(e.Location));
             int deltaX = palletLocal.X - dragOffset.X;
             int deltaY = palletLocal.Y - dragOffset.Y;
 
-            // 2) mouseInBed is just e.Location
-            Point mouseInBed = e.Location;
+            // 2) bed rect + buffer
+            int buffer = 50;
+            int bedLeft = (panel_truckBed.Width - bedX) / 2;
+            int bedTop = (panel_truckBed.Height - bedY) / 2;
+            int bedRight = bedLeft + bedX;
+            int bedBottom = bedTop + bedY;
 
-            // 3) bed bounds
-            int centerX = panel_truckBed.Width / 2;
-            int centerY = panel_truckBed.Height / 2;
-            int xCorBed = centerX - bedX / 2;
-            int yCorBed = centerY - bedY / 2;
-            int buffer = 50; // or whatever
+            // 3) old location
+            Point oldLoc = selectedPallet.Location;
 
-            // 4) offsets 
-            int leftOffset = palletLocal.X;
-            int rightOffset = selectedPallet.Width - palletLocal.X;
-            int topOffset = palletLocal.Y;
-            int bottomOffset = selectedPallet.Height - palletLocal.Y;
+            // 4) compute rawLoc and the “extended” zone (bed ± buffer, size-adjusted)
+            Point rawLoc = new Point(oldLoc.X + deltaX,
+            oldLoc.Y + deltaY);
+            var extended = new Rectangle(
+            bedLeft - buffer,
+            bedTop - buffer,
+            bedX + buffer * 2 - selectedPallet.Width,
+            bedY + buffer * 2 - selectedPallet.Height);
+            bool outside = !extended.Contains(rawLoc);
 
-            // 5) distances 
-            
-            int distLeft = (mouseInBed.X - leftOffset) - xCorBed;
-            int distRight = (mouseInBed.X + rightOffset) - (xCorBed + bedX);
-            int distTop = (mouseInBed.Y - topOffset) - yCorBed;
-            int distBottom = (mouseInBed.Y + bottomOffset) - (yCorBed + bedY);
-
-            // 6) zone tests
-            bool inLeftBuf = distLeft < 0 && distLeft > -buffer;
-            bool outLeftBuf = distLeft <= -buffer;
-            bool inRightBuf = distRight > 0 && distRight < buffer;
-            bool outRightBuf = distRight >= buffer;
-            bool inTopBuf = distTop < 0 && distTop > -buffer;
-            bool outTopBuf = distTop <= -buffer;
-            bool inBottomBuf = distBottom > 0 && distBottom < buffer;
-            bool outBottomBuf = distBottom >= buffer;
-
-
-            // 7) allow/block
-            bool allowX = !((inLeftBuf && deltaX < 0) || (inRightBuf && deltaX > 0));
-            bool allowY = !((inTopBuf && deltaY < 0) || (inBottomBuf && deltaY > 0));
-
-            
-            bool cursorOutX = e.X <= xCorBed - buffer || e.X >= xCorBed + bedX + buffer;
-            bool cursorOutY = e.Y <= yCorBed - buffer || e.Y >= yCorBed + bedY + buffer;
-
-                    
-
-            
-
-            if(cursorOutX || cursorOutY && hasSnappedOut == false)
+            if (outside)
             {
-                hasSnappedOut = true;
-                hasSnappedIn = false;
-                deltaX = 0; deltaY = 0; // je to potreba??
-                selectedPallet.Location = e.Location;
+                // -- snapped out --
+                if (!hasSnappedOut)
+                {
+                    hasSnappedOut = true;
+                    hasSnappedIn = false;
+                }
+
+                // free move: just use rawLoc (no clamp, no overlap check)
+                selectedPallet.Location = rawLoc;
+            }
+            else
+            {
+                // -- snapped in --
+                if (!hasSnappedIn)
+                {
+                    hasSnappedIn = true;
+                    hasSnappedOut = false;
+                }
+
+                // clamp rawLoc to the true bed edges
+                int clampedX = Math.Max(bedLeft,
+                Math.Min(bedRight - selectedPallet.Width, rawLoc.X));
+                int clampedY = Math.Max(bedTop,
+                Math.Min(bedBottom - selectedPallet.Height, rawLoc.Y));
+                Point newLoc = new Point(clampedX, clampedY);
+
+                if (!_preventOverlap)
+                {
+                    // overlap‐off: move freely
+                    selectedPallet.BackColor = Color.FromArgb(102, 99, 99);
+                    selectedPallet.Location = newLoc;
+                }
+                else
+                {
+                    // try X only
+                    var testX = new Point(newLoc.X, oldLoc.Y);
+                    bool canX = !IsOverlapping(selectedPallet, testX);
+
+                    // try Y only
+                    var testY = new Point(oldLoc.X, newLoc.Y);
+                    bool canY = !IsOverlapping(selectedPallet, testY);
+
+                    // build allowed location
+                    var allowed = oldLoc;
+                    if (canX) allowed.X = newLoc.X;
+                    if (canY) allowed.Y = newLoc.Y;
+
+                    if (allowed != oldLoc)
+                    {
+                        // moved at least on one axis
+                        selectedPallet.BackColor = Color.FromArgb(102, 99, 99);
+                        selectedPallet.Location = allowed;
+                    }
+                    else
+                    {
+                        // blocked completely
+                        selectedPallet.BackColor = Color.LightCoral;
+                    }
+                }
 
             }
-
-            if (!(cursorOutX || cursorOutY) && hasSnappedIn == false)
-            {
-                hasSnappedIn = true;
-                hasSnappedOut = false;
-                deltaX = 0; deltaY = 0;
-                selectedPallet.Location = e.Location;
-            }
-            
-            
-
-
-            label_X4.Text = "IN";
-            Point newLoc = selectedPallet.Location;
-            if (allowX) newLoc.X += deltaX;
-            if (allowY) newLoc.Y += deltaY;
-            selectedPallet.Location = newLoc;
-
-            
-
-
-            // debug
-            label_X3.Text = inLeftBuf ? "IN LEFT BUF" :
-                            outLeftBuf ? "LEFT OUT" :
-                            inRightBuf ? "IN RIGHT BUF" :
-                            outRightBuf ? "RIGHT OUT" :
-                                           "X INSIDE";
-            label_Y3.Text = inTopBuf ? "IN TOP BUF" :
-                            outTopBuf ? "TOP OUT" :
-                            inBottomBuf ? "IN BOT BUF" :
-                            outBottomBuf ? "BOT OUT" :
-                                           "Y INSIDE";
         }
         private void Pallet_MouseMove(object sender, MouseEventArgs e)
         {
@@ -308,6 +339,16 @@ namespace nakladka_vizual
                 selectedPallet.Width = selectedPallet.Height;
                 selectedPallet.Height = oldWidth;
                 selectedPallet.Invalidate(); 
+            }
+        }
+        private void DeletePallet(object sender, EventArgs e)
+        {
+            if (selectedPallet != null)
+            {
+                // Remove from the UI and free resources
+                panel_truckBed.Controls.Remove(selectedPallet);
+                selectedPallet.Dispose();
+                selectedPallet = null;
             }
         }
 
@@ -371,5 +412,64 @@ namespace nakladka_vizual
             }
             doc.Save(filename);
         }
+
+        private void checkBox_overlap_CheckedChanged(object sender, EventArgs e)
+        {
+            _preventOverlap = checkBox_overlap.Checked;
+        }
+        private bool IsOverlapping(Panel p, Point newLoc)
+        {
+            var candidate = new Rectangle(newLoc, p.Size);
+            return panel_truckBed.Controls
+                .OfType<Panel>()           // all pallets
+                .Where(q => q != p)        // except the one we’re moving
+                .Any(q => q.Bounds.IntersectsWith(candidate));
+        }
+        private void Label_DoubleClick(object sender, EventArgs e)
+        {
+            var lbl = (Label)sender;
+            var panel = (Panel)lbl.Parent;
+
+            // Create the editor textbox
+            var tb = new TextBox
+            {
+                Text = lbl.Text,
+                Dock = DockStyle.Fill,
+                BorderStyle = BorderStyle.None,
+                TextAlign = HorizontalAlignment.Center,
+                Font = lbl.Font
+            };
+
+            // Local helper to commit the edit and restore the label
+            void Commit()
+            {
+                panel.Controls.Clear();
+                lbl.Text = string.IsNullOrWhiteSpace(tb.Text)
+                           ? $"{panel.Width}×{panel.Height}"
+                           : tb.Text;
+                panel.Controls.Add(lbl);
+            }
+
+            // Commit when the textbox loses focus
+            tb.Leave += (s2, e2) => Commit();
+
+            // Commit when Enter is pressed
+            tb.KeyDown += (s2, ke) =>
+            {
+                if (ke.KeyCode == Keys.Enter)
+                {
+                    ke.Handled = true;
+                    ke.SuppressKeyPress = true;
+                    Commit();
+                }
+            };
+
+            // Swap in the TextBox
+            panel.Controls.Clear();
+            panel.Controls.Add(tb);
+            tb.Focus();
+        }
     }
+
+
 }

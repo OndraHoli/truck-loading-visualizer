@@ -47,6 +47,7 @@
             this.label_X4 = new System.Windows.Forms.Label();
             this.label_Y4 = new System.Windows.Forms.Label();
             this.button_export = new System.Windows.Forms.Button();
+            this.checkBox_overlap = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_PalletX)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_PalletY)).BeginInit();
             this.tableLayoutPanel1.SuspendLayout();
@@ -188,6 +189,7 @@
             this.tableLayoutPanel1.Controls.Add(this.label_X4, 2, 8);
             this.tableLayoutPanel1.Controls.Add(this.label_Y4, 3, 8);
             this.tableLayoutPanel1.Controls.Add(this.button_export, 2, 5);
+            this.tableLayoutPanel1.Controls.Add(this.checkBox_overlap, 3, 5);
             this.tableLayoutPanel1.Location = new System.Drawing.Point(12, 12);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 9;
@@ -195,8 +197,8 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 43F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 44F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 43F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 55F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 371F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 57F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 369F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 35F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 37F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 39F));
@@ -278,13 +280,24 @@
             // 
             // button_export
             // 
-            this.button_export.Location = new System.Drawing.Point(896, 220);
+            this.button_export.Location = new System.Drawing.Point(896, 222);
             this.button_export.Name = "button_export";
             this.button_export.Size = new System.Drawing.Size(121, 203);
             this.button_export.TabIndex = 17;
             this.button_export.Text = "EXPORT";
             this.button_export.UseVisualStyleBackColor = true;
             this.button_export.Click += new System.EventHandler(this.button_export_Click);
+            // 
+            // checkBox_overlap
+            // 
+            this.checkBox_overlap.AutoSize = true;
+            this.checkBox_overlap.Location = new System.Drawing.Point(1048, 222);
+            this.checkBox_overlap.Name = "checkBox_overlap";
+            this.checkBox_overlap.Size = new System.Drawing.Size(86, 24);
+            this.checkBox_overlap.TabIndex = 18;
+            this.checkBox_overlap.Text = "překrytí";
+            this.checkBox_overlap.UseVisualStyleBackColor = true;
+            this.checkBox_overlap.CheckedChanged += new System.EventHandler(this.checkBox_overlap_CheckedChanged);
             // 
             // Form1
             // 
@@ -321,6 +334,7 @@
         private System.Windows.Forms.Label label_X4;
         private System.Windows.Forms.Label label_Y4;
         private System.Windows.Forms.Button button_export;
+        private System.Windows.Forms.CheckBox checkBox_overlap;
     }
 }
 
